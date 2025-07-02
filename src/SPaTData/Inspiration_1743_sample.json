@@ -1,0 +1,99 @@
+{
+    timestamp: 261303
+    name: ModularLabTest
+    intersections:
+    - name: CARLA_INTERSECTION
+    id:
+        roadregulatorid: 0
+        intersectionid: 39726
+    revision: 1
+    status:
+        manualcontrolisenabled: 0
+        stoptimeisactivated: 0
+        failureflash: 0
+        preemptisactive: 0
+        signalpriorityisactive: 0
+        fixedtimeoperation: 1
+        trafficdependentoperation: 0
+        standbyoperation: 0
+        failuremode: 0
+        'off': 0
+        recentmapmessageupdate: 0
+        recentchangeinmapassignedlanesidsused: 0
+        novalidmapisabilableatthistime: 0
+        nobalidspatisabilableatthistime: 0
+        reserve14: 0
+        reserve15: 0
+    moy: 261303
+    timestamp: 21282
+    enabledlanes: []
+    states:
+    - movementname: signal_1
+        signalgroupid: 1
+        statetimespeed:
+        - movementphasestate: 3
+        timing:
+            startime: 21282
+            minendtime: 29282
+            maxendtime: 33282
+            likelytime: 31282
+            confidence: 95
+            nexttime: 0
+        speeds: []
+        maneuverassistlist:
+        connectionid: 0
+        queuelength: 0
+        availablestoragelength: 0
+        waitonstop: false
+        pedbicycledetect: false
+    maneuverassistlist: []
+    ---
+    timestamp: 261303
+    name: ModularLabTest
+    intersections:
+    - name: CARLA_INTERSECTION
+    id:
+        roadregulatorid: 0
+        intersectionid: 39726
+    revision: 1
+    status:
+        manualcontrolisenabled: 0
+        stoptimeisactivated: 0
+        failureflash: 0
+        preemptisactive: 0
+        signalpriorityisactive: 0
+        fixedtimeoperation: 1
+        trafficdependentoperation: 0
+        standbyoperation: 0
+        failuremode: 0
+        'off': 0
+        recentmapmessageupdate: 0
+        recentchangeinmapassignedlanesidsused: 0
+        novalidmapisabilableatthistime: 0
+        nobalidspatisabilableatthistime: 0
+        reserve14: 0
+        reserve15: 0
+    moy: 261303
+    timestamp: 21382
+    enabledlanes: []
+    states:
+    - movementname: signal_1
+        signalgroupid: 1
+        statetimespeed:
+        - movementphasestate: 3
+        timing:
+            startime: 21382
+            minendtime: 29382
+            maxendtime: 33382
+            likelytime: 31382
+            confidence: 95
+            nexttime: 0
+        speeds: []
+        maneuverassistlist:
+        connectionid: 0
+        queuelength: 0
+        availablestoragelength: 0
+        waitonstop: false
+        pedbicycledetect: false
+    maneuverassistlist: []
+}
