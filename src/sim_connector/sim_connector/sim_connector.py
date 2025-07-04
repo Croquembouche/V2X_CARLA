@@ -53,7 +53,7 @@ class DefaultInfrastructure(Node):
         self.image_queue = queue.Queue()
         self.SPAT_publishers_ = []
         self.MAP_publishers_ = []
-        self.prepMAPfronJson("/media/william/blueicedrive/Github/V2X_CARLA/src/MAPData/Inspiration_1743.json")
+        self.prepMAPfromJson("/media/william/blueicedrive/Github/V2X_CARLA/src/MAPData/Inspiration_1743.json")
         self.timer = self.create_timer(timer_period, self.SPATCallback)
         self.timer = self.create_timer(timer_period, self.MAPCallback)
         self.camera_publisher_timer_ = self.create_timer(timer_period, self.RGBSensorcallback)
@@ -95,76 +95,97 @@ class DefaultInfrastructure(Node):
 
 # ---------------------------MAP--------------------------------
 
-    def prepMAPfronJson(self, json_path):
+    def prepMAPfromJson(self, json_path):
         with open(json_path, 'r') as f:
             data = json.load(f)
 
         map_msg = MAP()
-
-        # Top-level MAP fields
         map_msg.timestamp = self.getTimeStamp()[0]
         map_msg.msgissuerevision = 0
-        map_msg.layertype = 0  # You might need a mapping for this
-        map_msg.layerid = 0     # Same as above
+        map_msg.layertype = 0
+        map_msg.layerid = 0
 
-        # === Intersection Geometry ===
         intersection = IntersectionGeometry()
         ref_data = data["mapData"]["intersectionGeometry"]["referencePoint"]
 
-        # Set name and ID
         intersection.name = ref_data["descriptiveIntersctionName"]
         intersection.id = IntersectionReferenceID()
         intersection.id.intersectionid = int(ref_data["intersectionID"])
         intersection.id.roadregulatorid = 0
 
-        # Revision and ref point
         intersection.revision = 1
         intersection.refpoint = Position3D()
         intersection.refpoint.latitude = int(ref_data["referenceLat"] * 1e7)
         intersection.refpoint.longitude = int(ref_data["referenceLon"] * 1e7)
         intersection.refpoint.elevation = int(float(ref_data["referenceElevation"]))
-
         intersection.lanewidth = int(ref_data["masterLaneWidth"])
 
-        # === Lanes ===
-        lanes = []
         approaches = data["mapData"]["intersectionGeometry"]["laneList"]["approach"]
+        lanes = []
 
         for approach in approaches:
-            lane_type = "crosswalkLanes" if "crosswalkLanes" in approach else "drivingLanes"
-            for lane_data in approach.get(lane_type, []):
+            lane_type_key = "drivingLanes" if "drivingLanes" in approach else "crosswalkLanes"
+            approach_type = approach["approachType"].lower()
+            approach_id = int(approach["approachID"]) if approach["approachID"] != "-1" else 0
+
+            for lane_data in approach[lane_type_key]:
                 lane = GenericLane()
                 lane.laneid = int(lane_data["laneID"])
                 lane.name = lane_data["descriptiveName"]
-                lane.ingressapproach = int(approach["approachID"]) if approach["approachType"].lower() == "ingress" else 0
-                lane.egressapproach = int(approach["approachID"]) if approach["approachType"].lower() == "egress" else 0
 
+                # Direction
+                lane.ingressapproach = approach_id if approach_type == "ingress" else 0
+                lane.egressapproach = approach_id if approach_type == "egress" else 0
+
+                # Lane type
                 lane.laneattributes = LaneAttributes()
-                lane.laneattributes.directionaluse = ""  # Fill as needed
+                lane.laneattributes.lanetype = 1 if lane_data.get("laneType", "").lower() == "vehicle" else 0
+                lane.laneattributes.directionaluse = ""
                 lane.laneattributes.sharedwith = ""
-                lane.laneattributes.lanetype = 0  # Assume default
 
                 # Maneuvers
-                lane.maneuvers = ','.join(map(str, lane_data.get("laneManeuvers", [])))
+                lane.maneuvers = ",".join(map(str, lane_data.get("laneManeuvers", [])))
 
                 # Nodes
                 nodelist = NodeListXY()
-                for node in lane_data.get("laneNodes", []):
-                    node_obj = NodeXY()
-                    node_obj.delta = NodeOffsetPointXY()
-                    node_obj.delta.nodelatlon = Nodellmd64b()
-                    node_obj.delta.nodelatlon.latitude = int(node["nodeLat"] * 1e7)
-                    node_obj.delta.nodelatlon.longitude = int(node["nodeLong"] * 1e7)
-                    nodelist.nodes.append(node_obj)
-
+                for node in lane_data["laneNodes"]:
+                    node_xy = NodeXY()
+                    node_xy.delta = NodeOffsetPointXY()
+                    node_xy.delta.nodelatlon = Nodellmd64b()
+                    node_xy.delta.nodelatlon.latitude = int(node["nodeLat"] * 1e7)
+                    node_xy.delta.nodelatlon.longitude = int(node["nodeLong"] * 1e7)
+                    nodelist.nodes.append(node_xy)
                 lane.nodelist.append(nodelist)
+
+                # === Add Connections ===
+                for conn in lane_data.get("connections", []):
+                    if conn.get("toLane") and conn.get("signal_id"):
+                        connection = Connection()
+                        connection.signalgroup = int(conn["signal_id"])
+
+                        connection.connectinglane = ConnectingLane()
+                        connection.connectinglane.laneid = int(conn["toLane"])
+                        
+                        # Optional: parse maneuvers
+                        if "maneuvers" in conn:
+                            maneuvers = conn["maneuvers"]
+                            if 0 in maneuvers:
+                                connection.connectinglane.maneuver.maneuverstraightallowed = 1
+                            if 1 in maneuvers:
+                                connection.connectinglane.maneuver.maneuverleftallowed = 1
+                            if 2 in maneuvers:
+                                connection.connectinglane.maneuver.maneuverrightallowed = 1
+                            if 9 in maneuvers:
+                                connection.connectinglane.maneuver.maneuveruturnallowed = 1
+
+                        lane.connectsto.append(connection)
+
                 lanes.append(lane)
 
         intersection.laneset = lanes
         map_msg.intersections.append(intersection)
 
-        publisher_=self.create_publisher(MAP, "MAP_Inspiration_1743", 10)
-
+        publisher_ = self.create_publisher(MAP, "MAP_Inspiration_1743", 10)
         self.MAP_publishers_.append((map_msg, publisher_))
 
     def MAPCallback(self):
@@ -234,7 +255,7 @@ class DefaultInfrastructure(Node):
         for traffic_signal in traffic_signals:
             publisher_=self.create_publisher(SPAT, "SPAT_TL_0"+str(counter), 10)
             self.SPAT_publishers_.append((traffic_signal, publisher_))
-            self.addRBGCameraSensor(traffic_signal, counter)
+            # self.addRBGCameraSensor(traffic_signal, counter)
             counter += 1
 
 
